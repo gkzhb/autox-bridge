@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { unzipSync } from 'fflate';
-import { createProject, packageProject } from '../src/project.js';
+import { createProject, packageProject } from '../dist/project.js';
 import { fixture, device } from './helpers.js';
 
 async function folder(t) {

@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { AutoXBridge } from '../src/bridge.js';
+import { AutoXBridge } from '../dist/bridge.js';
 import { fixture, device } from './helpers.js';
 const exec = promisify(execFile);
 const bin = fileURLToPath(new URL('../bin/autox-bridge.js', import.meta.url));

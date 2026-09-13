@@ -19,3 +19,6 @@ findings.md
 *.p12
 *.pfx
 .npmrc
+
+# TypeScript build output
+dist/

@@ -7,10 +7,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import WebSocket from 'ws';
-import { AutoXBridge } from '../src/bridge.js';
-import { DeviceSession } from '../src/protocol.js';
-import { AdbManager } from '../src/adb.js';
-import { createProject, packageProject } from '../src/project.js';
+import { AutoXBridge } from '../dist/bridge.js';
+import { DeviceSession } from '../dist/protocol.js';
+import { AdbManager } from '../dist/adb.js';
+import { createProject, packageProject } from '../dist/project.js';
 import { fixture, device } from './helpers.js';
 
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }

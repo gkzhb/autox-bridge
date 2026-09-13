@@ -14,6 +14,7 @@
 # 从当前源码安装（尚未向 npm registry 发布）
 cd ../pi-autox
 pnpm install --frozen-lockfile
+pnpm run build
 pnpm test
 
 # 不全局安装也可直接运行
@@ -185,11 +186,18 @@ autox-bridge shutdown
 
 ## 开发与验证
 
+核心实现位于 `src/*.ts`，启用 TypeScript `strict` 和 NodeNext ESM；`dist/` 是被 git 忽略的编译产物。直接执行 `node bin/autox-bridge.js` 前需先 `pnpm run build`；`pnpm start`、`pnpm test` 和 `pnpm pack` 会自动构建。`bin/` 仅保留无需 TS 加载器的 JavaScript 启动器，分发包可直接在 Node.js 20+ 运行。
+
+包入口和 `autox-bridge/protocol` 子路径均附带 `.d.ts` 类型声明，导出 `BridgeOptions`、`BridgeAction`、`DeviceInfo`、`BridgeEvent` 等类型；`execute()` / `action()` 按 action 推导返回类型。扩展协议数据保持 `unknown`，使用前需检查；自定义 HTTP 路由可用 `client.request<MyResponse>('/custom')` 指定预期类型（不替代运行时校验）。
+
+原有 JavaScript 测试改为验证 `dist/`，另有 `test/types.test.ts` 检查包入口类型与非法参数的编译期拒绝。手机端 AutoX 脚本及 `new-project` 生成的 `main.js` 仍为 JavaScript，不在本包 TypeScript 编译范围内。
+
 ```sh
 pnpm install --frozen-lockfile
-pnpm run check
-pnpm test
-pnpm pack --dry-run
+pnpm run check        # 严格 TypeScript 类型检查，不生成文件
+pnpm run build        # 生成 dist/*.js、类型声明与 source maps
+pnpm test             # 构建 + 公开类型契约检查 + 运行时回归测试
+pnpm pack             # 打包前自动执行类型检查、构建和测试
 ```
 
 测试通过真实本地 WebSocket/HTTP 和模拟 Android 端验证新旧握手、心跳、所有脚本报文、二进制 ZIP/MD5/增量、并发顺序、日志/SSE、多设备选择、鉴权、CLI 子进程、ADB 命令参数及 forward 清理。**没有连接真实 Android 硬件验证**；不同 AutoX 分支或版本仍需按上述步骤验收。

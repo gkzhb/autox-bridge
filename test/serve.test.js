@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { BridgeClient } from '../src/client.js';
+import { BridgeClient } from '../dist/client.js';
 const bin = fileURLToPath(new URL('../bin/autox-bridge.js', import.meta.url));
 
 test('foreground serve supports status and API shutdown, with secrets absent from help', { timeout: 15000 }, async t => {

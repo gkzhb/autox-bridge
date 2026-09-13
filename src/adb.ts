@@ -1,11 +1,35 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { AutoXBridge } from './bridge.js';
+import type { AdbDevice, DeviceInfo, TrackingStatus } from './types.js';
+import { errorMessage } from './errors.js';
+
+export type AdbExec = (file: string, args: string[], options: { timeout: number; maxBuffer: number }) => Promise<{ stdout: string }>;
+export interface AdbOptions { executable?: string; interval?: number; exec?: AdbExec }
+export type AdbBridge = Pick<AutoXBridge, 'devices' | 'connect' | 'publish'>;
+
 const execFileAsync = promisify(execFile);
 
 /** Uses Android platform-tools, never invokes a shell. */
 export class AdbManager {
-  constructor(bridge, { executable = 'adb', interval = 3000, exec = execFileAsync } = {}) {
-    Object.assign(this, { bridge, executable, interval, exec });
+  bridge: AdbBridge;
+  executable: string;
+  interval: number;
+  exec: AdbExec;
+  forwards: Map<string, number>;
+  pending: Map<string, Promise<DeviceInfo>>;
+  removals: Map<string, Promise<void>>;
+  generation: number;
+  scans: Set<Promise<AdbDevice[] | void>>;
+  startups: Set<Promise<TrackingStatus>>;
+  tracking: boolean;
+  stopped: boolean;
+  trackPromise?: Promise<TrackingStatus>;
+  scanTask?: Promise<AdbDevice[] | void>;
+  timer?: NodeJS.Timeout;
+
+  constructor(bridge: AdbBridge, { executable = 'adb', interval = 3000, exec = execFileAsync }: AdbOptions = {}) {
+    this.bridge = bridge; this.executable = executable; this.interval = interval; this.exec = exec;
     this.forwards = new Map();
     this.pending = new Map();
     this.removals = new Map();
@@ -15,11 +39,11 @@ export class AdbManager {
     this.tracking = false;
     this.stopped = false;
   }
-  async run(args) {
+  async run(args: string[]) {
     const { stdout } = await this.exec(this.executable, args, { timeout: 10000, maxBuffer: 1024 * 1024 });
     return stdout.trim();
   }
-  async list() {
+  async list(): Promise<AdbDevice[]> {
     const text = await this.run(['devices', '-l']);
     return text.split(/\r?\n/).filter(line => line && !line.startsWith('List of') && !line.startsWith('*')).map(line => {
       const [id, state, ...properties] = line.trim().split(/\s+/);
@@ -28,17 +52,17 @@ export class AdbManager {
       })) };
     });
   }
-  connect(id) {
+  connect(id: string): Promise<DeviceInfo> {
     if (typeof id !== 'string' || !id || id.startsWith('-')) return Promise.reject(new Error('A valid ADB serial is required'));
     if (this.stopped) return Promise.reject(new Error('ADB manager is shutting down'));
     const existing = this.bridge.devices.get(`adb:${id}`);
     if (existing) return Promise.resolve(existing.info());
-    if (this.pending.has(id)) return this.pending.get(id);
+    if (this.pending.has(id)) return this.pending.get(id)!;
     const operation = this.connectOnce(id).finally(() => this.pending.delete(id));
     this.pending.set(id, operation);
     return operation;
   }
-  async connectOnce(id) {
+  async connectOnce(id: string) {
     // Own every mapping we create; do not reuse/remove another application's forward.
     if (this.forwards.has(id)) {
       await this.removeForward(id);
@@ -56,8 +80,8 @@ export class AdbManager {
       throw error;
     }
   }
-  removeForward(id) {
-    if (this.removals.has(id)) return this.removals.get(id);
+  removeForward(id: string): Promise<void> {
+    if (this.removals.has(id)) return this.removals.get(id)!;
     const port = this.forwards.get(id);
     if (port === undefined) return Promise.resolve();
     const operation = (async () => {
@@ -65,7 +89,7 @@ export class AdbManager {
         await this.run(['-s', id, 'forward', '--remove', `tcp:${port}`]);
         if (this.forwards.get(id) === port) this.forwards.delete(id);
       } catch (error) {
-        this.bridge.publish('warning', { source: 'adb', message: `Forward cleanup failed (${id}, tcp:${port}): ${error.message}` });
+        this.bridge.publish('warning', { source: 'adb', message: `Forward cleanup failed (${id}, tcp:${port}): ${errorMessage(error)}` });
       }
     })().finally(() => this.removals.delete(id));
     this.removals.set(id, operation);
@@ -83,7 +107,7 @@ export class AdbManager {
     await Promise.all([...online].map(async id => {
       if (!current()) return;
       try { await this.connect(id); }
-      catch (error) { this.bridge.publish('warning', { source: 'adb', id, message: error.message }); }
+      catch (error) { this.bridge.publish('warning', { source: 'adb', id, message: errorMessage(error) }); }
     }));
     return list;
   }
@@ -99,7 +123,7 @@ export class AdbManager {
       const tick = () => {
         if (!this.tracking || generation !== this.generation || this.stopped) return;
         this.scanTask = this.scan(generation).catch(error => {
-          this.bridge.publish('warning', { source: 'adb', message: error.message });
+          this.bridge.publish('warning', { source: 'adb', message: errorMessage(error) });
         }).finally(() => {
           if (this.tracking && generation === this.generation && !this.stopped) {
             this.timer = setTimeout(tick, this.interval); this.timer.unref();

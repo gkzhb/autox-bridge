@@ -2,31 +2,32 @@ import { promises as fs, constants } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import archiver from 'archiver';
+import type { PackageProjectOptions, PackagedProject, ProjectSnapshot } from './types.js';
 import { MAX_PAYLOAD, isRecord } from './protocol.js';
 
-const hash = data => createHash('sha256').update(data).digest('hex');
+const hash = (data: Buffer) => createHash('sha256').update(data).digest('hex');
 
 /** Ignore entries are relative paths, not globs, with an optional strict reference prefix/exclusion mode. */
-export async function packageProject(folder, previous = new Map(), { full = false, maxBytes = MAX_PAYLOAD - 65536, referenceFiles = false } = {}) {
+export async function packageProject(folder: string, previous: ProjectSnapshot = new Map(), { full = false, maxBytes = MAX_PAYLOAD - 65536, referenceFiles = false }: PackageProjectOptions = {}): Promise<PackagedProject> {
   folder = await fs.realpath(folder);
-  const config = JSON.parse(await fs.readFile(path.join(folder, 'project.json'), 'utf8'));
+  const config: unknown = JSON.parse(await fs.readFile(path.join(folder, 'project.json'), 'utf8'));
   if (!isRecord(config) || (config.ignore !== undefined && (!Array.isArray(config.ignore) || config.ignore.some(x => typeof x !== 'string')))) {
     throw new Error('project.json must be an object with an optional string[] ignore');
   }
-  const ignores = [...(referenceFiles ? [] : ['.git', 'node_modules']), ...(config.ignore ?? [])].map(entry => {
+  const ignores = [...(referenceFiles ? [] : ['.git', 'node_modules']), ...((config.ignore as string[] | undefined) ?? [])].map(entry => {
     const normalized = path.posix.normalize(entry.replaceAll('\\', '/'));
     if (path.posix.isAbsolute(normalized) || /^[a-z]:/i.test(normalized) || normalized === '..' || normalized.startsWith('../')) {
       throw new Error(`ignore path must stay inside project: ${entry}`);
     }
     return referenceFiles ? normalized : normalized.replace(/\/$/, '');
   });
-  const ignored = rel => ignores.some(p => referenceFiles
+  const ignored = (rel: string) => ignores.some(p => referenceFiles
     ? path.join(folder, rel).startsWith(path.join(folder, p))
     : p === '.' || rel === p || rel.startsWith(`${p}/`));
-  const snapshot = new Map();
-  const files = [];
+  const snapshot: ProjectSnapshot = new Map();
+  const files: { name: string; data: Buffer }[] = [];
   let totalBytes = 0;
-  async function walk(dir, prefix = '') {
+  async function walk(dir: string, prefix = '') {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
@@ -54,10 +55,10 @@ export async function packageProject(folder, previous = new Map(), { full = fals
   await walk(folder);
   const removed = [...previous.keys()].filter(name => !snapshot.has(name));
   const archive = archiver('zip', { zlib: { level: 6 } });
-  const chunks = [];
+  const chunks: Buffer[] = [];
   let zippedBytes = 0;
-  const completed = new Promise((resolve, reject) => {
-    archive.on('data', chunk => {
+  const completed = new Promise<Buffer>((resolve, reject) => {
+    archive.on('data', (chunk: Buffer) => {
       zippedBytes += chunk.length;
       if (zippedBytes > MAX_PAYLOAD) { reject(new Error('Project ZIP exceeds 64 MiB')); archive.abort(); return; }
       chunks.push(chunk);
@@ -72,7 +73,7 @@ export async function packageProject(folder, previous = new Map(), { full = fals
     files: files.map(file => file.name), removed };
 }
 
-export async function createProject(folder, name = path.basename(path.resolve(folder))) {
+export async function createProject(folder: string, name = path.basename(path.resolve(folder))) {
   folder = path.resolve(folder);
   await fs.mkdir(folder, { recursive: true });
   const configPath = path.join(folder, 'project.json');
@@ -80,7 +81,7 @@ export async function createProject(folder, name = path.basename(path.resolve(fo
   // Never overwrite either file, even when the other one is absent.
   for (const file of [configPath, mainPath]) {
     try { await fs.lstat(file); throw new Error(`Refusing to overwrite ${file}`); }
-    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    catch (error) { if (!isRecord(error) || error.code !== 'ENOENT') throw error; }
   }
   const config = { name, main: 'main.js', ignore: ['build'], packageName: 'com.example', versionName: '1.0.0', versionCode: 1 };
   await fs.writeFile(configPath, JSON.stringify(config, null, 2) + '\n', { flag: 'wx' });

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { WebSocketServer } from 'ws';
-import { AdbManager } from '../src/adb.js';
+import { AdbManager } from '../dist/adb.js';
 import { fixture } from './helpers.js';
 
 test('ADB device parsing, shell-free args, dynamic forward, hello and owned cleanup', async t => {

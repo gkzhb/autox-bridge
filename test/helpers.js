@@ -1,7 +1,7 @@
 import { once } from 'node:events';
 import WebSocket from 'ws';
-import { AutoXBridge } from '../src/bridge.js';
-import { BridgeClient } from '../src/client.js';
+import { AutoXBridge } from '../dist/bridge.js';
+import { BridgeClient } from '../dist/client.js';
 
 export async function fixture(t, options = {}) {
   const bridge = new AutoXBridge({ port: 0, apiPort: 0, heartbeatInterval: 0, ...options });

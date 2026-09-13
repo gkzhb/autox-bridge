@@ -1,42 +1,52 @@
+import { BridgeError } from './errors.js';
+import { isRecord } from './protocol.js';
+import type { ActionResponseFor, BridgeAction, BridgeClientOptions, BridgeEvent, BridgeStatus, DeviceInfo, EventFilters } from './types.js';
+
 export class BridgeClient {
-  constructor({ url = 'http://127.0.0.1:9318', token = '', timeout = 30000 } = {}) {
+  url: URL;
+  token: string;
+  timeout: number;
+
+  constructor({ url = 'http://127.0.0.1:9318', token = '', timeout = 30000 }: BridgeClientOptions = {}) {
     this.url = new URL(url);
     if (!['http:', 'https:'].includes(this.url.protocol) || this.url.username || this.url.password) throw new Error('API URL must be http(s) without credentials');
     this.token = token;
     this.timeout = timeout;
   }
-  headers() { return this.token ? { authorization: `Bearer ${this.token}` } : {}; }
-  async request(route, body) {
+  headers(): Record<string, string> { return this.token ? { authorization: `Bearer ${this.token}` } : {}; }
+  request(route: '/v1/status'): Promise<BridgeStatus>;
+  request(route: '/v1/devices'): Promise<DeviceInfo[]>;
+  request<T = unknown>(route: string, body?: unknown): Promise<T>;
+  async request<T = unknown>(route: string, body?: unknown): Promise<T> {
     const response = await fetch(new URL(route, this.url), {
       method: body === undefined ? 'GET' : 'POST',
       headers: { ...this.headers(), ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(this.timeout), redirect: 'error',
     });
-    const data = await response.json();
+    const data: unknown = await response.json();
     if (!response.ok) {
-      const error = new Error(data.error ?? `Bridge request failed (${response.status})`);
-      error.details = data;
-      throw error;
+      throw new BridgeError(isRecord(data) && typeof data.error === 'string' ? data.error : `Bridge request failed (${response.status})`, response.status, data);
     }
-    return data;
+    return data as T;
   }
-  action(input) { return this.request('/v1/action', input); }
+  action<T extends BridgeAction>(input: T): Promise<ActionResponseFor<T>> { return this.request('/v1/action', input); }
 
-  async *events({ since = 0, device, type, signal } = {}) {
+  async *events({ since = 0, device, type, signal }: EventFilters = {}): AsyncGenerator<BridgeEvent, void, unknown> {
     const url = new URL('/v1/events', this.url);
-    url.search = new URLSearchParams({ follow: '1', since: String(since), ...(device ? { device } : {}), ...(type ? { type } : {}) });
+    url.search = new URLSearchParams({ follow: '1', since: String(since), ...(device ? { device } : {}), ...(type ? { type } : {}) }).toString();
     // Timeout only connection establishment. The stream stays open until explicitly cancelled.
     const controller = new AbortController();
-    const abort = () => controller.abort(signal.reason);
+    const abort = () => controller.abort(signal?.reason);
     if (signal?.aborted) abort();
     else signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(() => controller.abort(new Error('Event connection timed out')), this.timeout);
-    let reader;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
       const response = await fetch(url, { headers: this.headers(), signal: controller.signal, redirect: 'error' });
       clearTimeout(timer);
       if (!response.ok) throw new Error(`Event stream rejected (${response.status}): ${await response.text()}`);
+      if (!response.body) throw new Error('Event stream has no response body');
       reader = response.body.getReader();
       const decoder = new TextDecoder();
       let pending = '';

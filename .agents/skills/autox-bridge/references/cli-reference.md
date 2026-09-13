@@ -16,9 +16,9 @@ autox-bridge --version
 autox --version
 ```
 
-`pnpm pack` 会执行语法检查和测试。源码版本不为 0.1.0 时使用实际产物名。不要假定包已发布到 registry。若 `pnpm bin -g` 的路径不在 PATH，参考 pnpm 提示配置；修改全局配置或 shell 启动文件前确认影响。
+`pnpm pack` 会执行 TypeScript 类型检查、构建和测试。源码版本不为 0.1.0 时使用实际产物名。不要假定包已发布到 registry。若 `pnpm bin -g` 的路径不在 PATH，参考 pnpm 提示配置；修改全局配置或 shell 启动文件前确认影响。
 
-不全局安装也能在源码根目录运行 `node bin/autox-bridge.js <参数>`；启动可用 `pnpm start --host 0.0.0.0`。安装后的 `autox` 与 `autox-bridge` 完全等价。
+不全局安装时，先执行 `pnpm run build` 生成 `dist/`，再在源码根目录运行 `node bin/autox-bridge.js <参数>`；启动可用 `pnpm start --host 0.0.0.0`。安装后的 `autox` 与 `autox-bridge` 完全等价。
 
 ## 全局选项
 
