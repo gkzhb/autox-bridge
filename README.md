@@ -174,6 +174,15 @@ autox-bridge shutdown
 
 插件 `/exec?cmd=save|rerun&path=...` 是编辑器集成 HTTP 钩子，不是 Android 协议。兼容钩子默认关闭，使用 `serve --legacy-exec` 后仅在 **管理端口**开放，并同样要求 token（若配置）；`path` 支持普通文件系统路径和 `file:///...` URI。`cmd=save` 保存项目，`cmd=rerun` 在选定设备上发送 stopAll、等待 1 秒后发送 run，与插件旧钩子一致（会停止该设备其他脚本）。建议新集成直接使用 POST API。
 
+## Agent Skill
+
+仓库包含遵循 [Agent Skills 规范](https://agentskills.io/specification) 的 CLI 使用技能：
+
+- 入口：[.agents/skills/autox-bridge/SKILL.md](.agents/skills/autox-bridge/SKILL.md)
+- 包含设备连接、脚本/项目操作、日志、目标选择、安全边界和故障排查。
+- 支持仓库级 `.agents/skills` 发现的 agent 可直接加载；其他支持 Agent Skills 的客户端可将整个 `autox-bridge` 技能目录复制到其技能目录（具体加载方式取决于客户端）。
+- 该技能是仓库文档，目前不包含在 npm tarball 中；不会自动安装软件、启动服务或执行手机脚本。
+
 ## 开发与验证
 
 ```sh
