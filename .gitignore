@@ -1,0 +1,21 @@
+node_modules/
+*.tgz
+coverage/
+.pi/
+
+# Local agent sessions and working notes
+.pi-subagents/
+.planning/
+task_plan.md
+progress.md
+findings.md
+
+# Local credentials and environment configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
