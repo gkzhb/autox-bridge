@@ -1,6 +1,6 @@
 # autox-bridge
 
-独立于 VS Code 的 **AutoX.js / Auto.js 设备桥接 npm 包**，提供 `autox-bridge` CLI（以及等价别名 `autox`）。兼容 [Auto.js-VSCode-Extension 1.110.0](https://github.com/kkevsekk1/Auto.js-VSCode-Extension) 实际使用的完整设备协议：WebSocket 握手、心跳、脚本运行/重跑/保存/停止、项目 ZIP 增量传输、日志和断连；支持 LAN、设备服务端直连及 ADB USB 转发。
+独立于 VS Code 的 **AutoX.js / Auto.js 设备桥接 npm 包**，提供 `autox-bridge` CLI（以及等价别名 `autox`）。兼容 [Auto.js-VSCode-Extension 1.110.0](https://github.com/autox-community/Auto.js-VSCode-Extension) 实际使用的完整设备协议：WebSocket 握手、心跳、脚本运行/重跑/保存/停止、项目 ZIP 增量传输、日志和断连；支持 LAN、设备服务端直连及 ADB USB 转发。
 
 > **范围说明**：这里的“完整”指参考插件源码中的设备协议，不代表 Android 全部管理能力。该协议没有标准的脚本执行结果 ACK、远程文件删除/下载、进程列表、截屏或 UI 树查询命令。CLI 返回 `status: "sent"` 只意味着报文写入 WebSocket，不代表脚本执行成功。点击、滑动、截图等操作可运行 AutoX JavaScript，实际权限及 API 取决于手机端。
 
