@@ -9,6 +9,7 @@ import type { BridgeOptions } from './bridge.js';
 import { AutoXBridge } from './bridge.js';
 import { BridgeClient } from './client.js';
 import { createProject } from './project.js';
+import { registerScriptCommands } from './scripts/cli.js';
 
 interface GlobalOptions extends BridgeClientOptions { json?: boolean }
 interface ServeOptions extends Omit<BridgeOptions, 'adb'> { adb?: boolean; adbPath: string }
@@ -51,6 +52,7 @@ export function buildProgram() {
     else console.log(JSON.stringify(value, null, 2));
   };
   const action = async (input: BridgeAction) => print(await client().action(input));
+  registerScriptCommands(program, print, action);
 
   program.command('serve').alias('start').description('Run the bridge in the foreground; stop with SIGINT/SIGTERM')
     .option('--host <address>', 'Device WebSocket bind address; use 0.0.0.0 for LAN', '127.0.0.1')

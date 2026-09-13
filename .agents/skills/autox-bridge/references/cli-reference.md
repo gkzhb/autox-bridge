@@ -84,6 +84,28 @@ autox-bridge --url http://127.0.0.1:9418 --json devices
 
 `stop ./hello.js` 必须与 run 的文件绝对路径一致。不能用 `stop <messageId>` 停止脚本：报文 messageId 与脚本 id 不是一个概念。
 
+## 用户级命名脚本
+
+唯一注册根目录为 `$XDG_CONFIG_HOME/autox/scripts`，未设置或为空时是 `~/.config/autox/scripts`；非空 XDG 值必须是绝对路径。只扫描直接子目录自己的 `script.json`，不递归、不扫描项目、不加载宿主插件。
+
+| 命令 | 行为 |
+|---|---|
+| `scripts list [--query <text>]` | 离线列出 name/description/directory/valid 和 diagnostics；query 不区分大小写 |
+| `scripts show <name>` | 离线显示 manifest、入口路径和稳定 id，不读正文 |
+| `scripts validate` | 离线校验声明、路径、UTF-8 正文与参数模板；不执行，失败 stdout 返回诊断且退出码 1 |
+| `scripts run <name> [--input <json>]` | 参数化运行，input 默认 `{}` |
+| `x <name> [--input <json>]` | scripts run 快捷入口 |
+| `scripts rerun <name> [--input <json>]` | 重新提供参数，按同一 identity 重跑 |
+| `scripts stop <name>` | 按注册 identity 停止，不需要 input |
+
+设备操作使用既有 `--device`/`--all`。同名能力拒绝解析，不静默覆盖。list 的 valid 只表示元数据/文件检查通过且不重名，不代表模板或设备执行成功。show/default 可能含敏感数据，报告前检查；`--input` 不适合传递凭据。
+
+manifest v1 必须包含 `schemaVersion:1`、kebab-case `name`、非空 `description`、`runtime:"autox"`、目录内相对 `.js` `entry`。可选 parameters 是以参数名为 key 的对象，定义 `type`（string/number/boolean）、required/default/enum/description。输入是 JSON 对象，拒绝未知字段和类型不匹配，不做类型强转。
+
+参数化正文要求在开头（可在注释及 `"ui";`/`"use strict";` 后）单行声明 `var input = __AUTOX_INPUT__;`，保留 token 只出现一次；CLI 替换为安全 JSON.parse 数据表达式，不执行宿主代码。不自动上传旁边依赖或资源。
+
+identity 基于规范化目录和 manifest.name；输入、正文修改不影响 id。移动/改名或删除注册项后，需要先前记录的 id 使用普通 `stop <id> --exact`。执行仍只有 sent 状态，没有结构化脚本返回值。未配置能力时，不猜测它存在或擅自安装。
+
 ## 项目
 
 | 命令 | 参数与含义 |

@@ -115,6 +115,24 @@ autox-bridge save-project ./demo --full --all
 - 项目目录由 **bridge 主机**读取。远程 API 客户端提供的目录必须存在于 bridge 主机；单文件脚本由 CLI 本机读取并上传正文。
 - 不建议把不可信进程可并发修改的目录作为项目根；软链接检查不是操作系统级沙箱。
 
+## 用户级命名脚本
+
+常用单文件 AutoX 能力可放在 `$XDG_CONFIG_HOME/autox/scripts/<目录>/`（未设置时 `~/.config/autox/scripts/<目录>/`），每个直接子目录提供 `script.json` 和入口 `.js`。**只扫描用户级目录的一层子目录，不递归、不扫描项目配置。**
+
+```sh
+# 本地发现/查看/校验，不需要启动 bridge
+autox --json scripts list
+autox --json scripts show launch-app
+autox --json scripts validate
+
+# 已声明且用户授权的能力；x 等价于 scripts run
+autox x launch-app --input '{"package":"com.android.settings"}' --device adb:SERIAL
+autox scripts rerun launch-app --input '{"package":"com.android.settings"}' --device adb:SERIAL
+autox scripts stop launch-app --device adb:SERIAL
+```
+
+采用声明式 JSON manifest，支持 string/number/boolean 参数、required/default/enum，以及安全 JSON 数据模板。配置不会在电脑上执行；正文仍由 CLI 上传，复用原有设备选择和 `sent` 语义，不提供执行结果 ACK。完整可复制配置、模板约定、输出格式和安全限制见 [用户级命名脚本](docs/scripts.md)。
+
 ## 日志、原始协议与程序接口
 
 ```sh

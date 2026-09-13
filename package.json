@@ -55,7 +55,8 @@
     "@types/ws": "^8.18.1",
     "archiver": "^7.0.1",
     "commander": "^13.1.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",

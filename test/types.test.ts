@@ -62,3 +62,13 @@ function allActions(input: BridgeAction) {
   return result;
 }
 void allActions;
+
+// Internal script declaration types are inferred from the runtime Zod schemas.
+import { parseManifest, scriptManifestSchema } from '../src/scripts/manifest.js';
+import type { ScriptManifest, ScriptParameter } from '../src/scripts/types.js';
+const scriptManifest: ScriptManifest = parseManifest({}); // not executed by the type-only test
+const inferredManifest: ScriptManifest = scriptManifestSchema.parse({});
+const numericParameter: ScriptParameter = { type: 'number', default: 0, enum: [0, 1] };
+// @ts-expect-error discriminated parameter schema rejects mismatched defaults
+const invalidParameter: ScriptParameter = { type: 'number', default: '0' };
+void [scriptManifest, inferredManifest, numericParameter, invalidParameter];
