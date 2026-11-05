@@ -1,0 +1,6 @@
+AutoX protocol compatibility was implemented with reference to:
+Auto.js-VSCode-Extension, version 1.110.0
+https://github.com/kkevsekk1/Auto.js-VSCode-Extension
+Reference files: src/autojs-debug.ts, src/extension.ts, src/project.ts, src/diff.ts.
+The reference project is distributed under GNU GPL version 2.
+This standalone implementation is also distributed under GPL-2.0-only.

@@ -6,19 +6,19 @@
 
 运行时 Node.js >=20；从源码安装使用 pnpm 11.5.3，工具本身要求 Node.js >=22.13。
 
-在用户提供的 **autox-bridge 源码根目录**（包含 package.json）执行：
+在用户提供的 **monorepo 根目录**（包含 `pnpm-workspace.yaml`）执行：
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm pack
+pnpm run pack:bridge
 pnpm add -g ./autox-bridge-0.1.0.tgz
 autox-bridge --version
 autox --version
 ```
 
-`pnpm pack` 会执行 TypeScript 类型检查、构建和测试。源码版本不为 0.1.0 时使用实际产物名。不要假定包已发布到 registry。若 `pnpm bin -g` 的路径不在 PATH，参考 pnpm 提示配置；修改全局配置或 shell 启动文件前确认影响。
+`pnpm run pack:bridge` 选择 `autox-bridge` 包打包，包含 TypeScript 类型检查、构建和测试；从根执行时 tarball 位于根目录。源码版本不为 0.1.0 时使用实际产物名。不要假定包已发布到 registry。若 `pnpm bin -g` 的路径不在 PATH，参考 pnpm 提示配置；修改全局配置或 shell 启动文件前确认影响。
 
-不全局安装时，先执行 `pnpm run build` 生成 `dist/`，再在源码根目录运行 `node bin/autox-bridge.js <参数>`；启动可用 `pnpm start --host 0.0.0.0`。安装后的 `autox` 与 `autox-bridge` 完全等价。
+不全局安装时，先执行 `pnpm run build` 生成 `dist/`，再在 monorepo 根目录运行 `pnpm cli <参数>`（参数路径按包目录解释，建议使用绝对路径）；启动可用 `pnpm start --host 0.0.0.0`。安装后的 `autox` 与 `autox-bridge` 完全等价。
 
 ## 全局选项
 

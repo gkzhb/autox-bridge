@@ -1,67 +1,17 @@
 {
-  "name": "autox-bridge",
-  "version": "0.1.0",
+  "name": "autox-bridge-workspace",
+  "private": true,
   "packageManager": "pnpm@11.5.3",
-  "description": "Standalone AutoX.js device bridge and CLI compatible with the Auto.js VS Code protocol",
-  "type": "module",
-  "main": "./dist/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./protocol": {
-      "types": "./dist/protocol.d.ts",
-      "import": "./dist/protocol.js",
-      "default": "./dist/protocol.js"
-    }
-  },
-  "bin": {
-    "autox-bridge": "./bin/autox-bridge.js",
-    "autox": "./bin/autox-bridge.js"
-  },
-  "files": [
-    "bin",
-    "dist",
-    "src",
-    "docs",
-    "README.md",
-    "LICENSE",
-    "NOTICE"
-  ],
-  "engines": {
-    "node": ">=20"
-  },
-  "license": "GPL-2.0-only",
-  "keywords": [
-    "autoxjs",
-    "autojs",
-    "android",
-    "adb",
-    "cli",
-    "automation"
-  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "start": "pnpm run build && node bin/autox-bridge.js serve",
-    "test": "pnpm run build && pnpm run test:types && node --test test/*.test.js",
-    "check": "tsc -p tsconfig.json --noEmit && node --check bin/autox-bridge.js",
-    "prepack": "pnpm run check && pnpm test",
-    "test:types": "tsc -p tsconfig.test.json"
-  },
-  "dependencies": {
-    "@types/node": "^20.19.43",
-    "@types/ws": "^8.18.1",
-    "archiver": "^7.0.1",
-    "commander": "^13.1.0",
-    "ws": "^8.18.0",
-    "zod": "^4.6.2"
-  },
-  "devDependencies": {
-    "@types/archiver": "^7.0.0",
-    "fflate": "^0.8.2",
-    "typescript": "^5.9.3"
-  },
-  "types": "./dist/index.d.ts"
+    "build": "pnpm -r run build",
+    "check": "pnpm -r run check",
+    "test": "pnpm -r run test",
+    "test:types": "pnpm -r run test:types",
+    "start": "pnpm --filter autox-bridge start",
+    "cli": "pnpm --filter autox-bridge exec node bin/autox-bridge.js",
+    "pack:bridge": "pnpm --filter autox-bridge pack",
+    "phonectl": "node packages/phonectl/bin/phonectl.js",
+    "pack:phonectl": "pnpm --filter phonectl pack",
+    "audit:packs": "node scripts/audit-packs.mjs"
+  }
 }

@@ -6,7 +6,7 @@
 
 - 查 `node --version`、`pnpm --version`、`pnpm bin -g` 和命令 PATH；不要误从 registry 安装同名未知包。
 - CLI 运行时 Node >=20；pnpm 11.5.3 源码工作流要求 Node >=22.13。
-- 已有源码且依赖完整时，先运行 `pnpm run build`，再用 `node bin/autox-bridge.js --help`。安装、调整系统 Node 或 shell 配置需符合用户授权范围。
+- 已有源码且依赖完整时，先运行 `pnpm run build`，再从 monorepo 根目录用 `pnpm cli --help`。安装、调整系统 Node 或 shell 配置需符合用户授权范围。
 
 ## 2. fetch failed / ECONNREFUSED
 

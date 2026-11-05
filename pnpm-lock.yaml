@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  packages/autox-bridge:
     dependencies:
       '@types/node':
         specifier: ^20.19.43
@@ -33,6 +35,19 @@ importers:
       fflate:
         specifier: ^0.8.2
         version: 0.8.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/phonectl:
+    dependencies:
+      commander:
+        specifier: ^13.1.0
+        version: 13.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.43
+        version: 20.19.43
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
