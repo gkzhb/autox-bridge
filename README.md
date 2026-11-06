@@ -23,7 +23,7 @@
 └── .agents/skills/autox-bridge/ # 仓库级 CLI 使用技能，不随 npm 包发布
 ```
 
-另有独立的 Termux 本地控制核心包 [`phonectl`](packages/phonectl/README.md)。它不依赖 autox-bridge，不自带 SSH 客户端；目前支持只读状态、Termux argv 执行及不降级的 rish 适配。真机 rish 结果通道及 AutoX 安全交付存在明确限制，详见包 README。
+另有独立的 Termux 本地控制核心包 [`phonectl`](packages/phonectl/README.md)。它不依赖 autox-bridge，不自带 SSH 客户端；目前支持只读状态、显式 Termux 执行及默认 HTTP 优先的 Shizuku shell（仅确定未提交执行时 fallback rish）；`--backend rish` 可强制跳过 HTTP，文件型 AutoX 保留显式用法。真机 rish 结果通道及 AutoX 安全交付存在明确限制，详见包 README。
 
 ## 从根目录开发
 
@@ -69,6 +69,8 @@ pnpm run build
 pnpm phonectl --help
 pnpm phonectl --json status
 pnpm phonectl --json exec --as termux -- pwd
+pnpm phonectl --json exec -- id -u                 # 默认 HTTP 优先，安全未提交失败才 rish
+pnpm phonectl --json exec --backend rish -- id -u  # 强制 rish
 pnpm --filter phonectl test
 pnpm run pack:phonectl   # 根目录产物 phonectl-0.1.0.tgz
 # 两个包均已打包后，可审计解包入口、bin、声明及发布清单

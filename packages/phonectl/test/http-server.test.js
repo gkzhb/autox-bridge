@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createApi,describe,decode} from '../runner/http-api.mjs';
+import {setTimeout as delay} from 'node:timers/promises';
+import http from 'node:http';
+
+test('HTTP API authenticates health and executions, isolates one blocked worker, and returns bound results',async t=>{
+ let release;
+ const key='a'.repeat(64);
+ let expiresAt=Date.now()+10000,expired=false;
+ const api=createApi({key,expiresAt:()=>expiresAt,onExpired:()=>{expired=true;},execute:request=>new Promise(resolve=>{release=()=>resolve({exitCode:7,stdout:'out',stderr:'err',requestId:request.requestId,attempt:request.attempt});})});
+ const server=http.createServer(api.handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>{api.close();server.closeAllConnections();server.close();});
+ const base='http://127.0.0.1:'+server.address().port;
+ assert.equal((await fetch(base+'/v1/health')).status,401);
+ assert.equal((await fetch(base+'/v1/health',{headers:{Authorization:'Bearer wrong'}})).status,401);
+ const headers={Authorization:'Bearer '+key,'Content-Type':'application/json'};
+ assert.equal((await fetch(base+'/v1/health',{headers})).status,200);
+ const request={version:1,requestId:'11111111-1111-4111-8111-111111111111',attempt:'22222222-2222-4222-8222-222222222222',deadline:Date.now()+10000,timeoutMs:10000,maxOutputBytes:1000,command:{mode:'argv',argv:['id','-u']}};
+ const submit=body=>fetch(base+'/v1/executions',{method:'POST',headers,body:JSON.stringify(body)});
+ assert.equal((await submit(request)).status,202);
+ assert.equal((await submit({...request,attempt:'33333333-3333-4333-8333-333333333333'})).status,409);
+ assert.equal((await fetch(base+'/v1/health',{headers})).status,200);
+ release();
+ const url=base+'/v1/executions/'+request.requestId+'?attempt='+request.attempt;
+ let result=await (await fetch(url,{headers})).json();
+ assert.equal(result.state,'completed');assert.equal(result.result.exitCode,7);
+ assert.equal((await submit(request)).status,200,'same request returns retained state, not rerun');
+ assert.equal((await submit({...request,command:{mode:'shell',script:'other'}})).status,409);
+ assert.equal((await submit({...request,version:2})).status,400);
+ assert.equal((await fetch(base+'/v1/health',{headers:{...headers,Origin:'http://evil'}})).status,403);
+ assert.equal((await fetch(base+'/v1/executions',{method:'POST',headers,body:'x'.repeat(40000)})).status,413);
+ expiresAt=Date.now()-1;
+ assert.equal((await fetch(base+'/v1/health',{headers})).status,503);
+ assert.equal(expired,true,'expiration checked independently of timers');
+});

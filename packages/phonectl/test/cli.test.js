@@ -20,9 +20,9 @@ test('help/version and JSON argv execution preserve command exit, output and dia
 test('explicit shell mode is distinct; unknown commands and timeout are structured',async()=>{
  const shell=await run(['--json','shell','--as','termux','--script','printf "%s" "shell mode"']);
  assert.equal(shell.code,0);assert.equal(JSON.parse(shell.stdout).result.stdout,'shell mode');
- const literal=await run(['exec','--',process.execPath,'-e','process.stdout.write(process.argv[1])','--','--json']);
+ const literal=await run(['exec','--as','termux','--',process.execPath,'-e','process.stdout.write(process.argv[1])','--','--json']);
  assert.equal(literal.stdout,'--json');
  const missing=await run(['--json','not-a-command']); assert.equal(JSON.parse(missing.stdout).error.code,'INVALID_ARGUMENT');
- const r=await run(['--json','exec','--timeout','50','--',process.execPath,'-e','setInterval(()=>{},1000)']);
+ const r=await run(['--json','exec','--as','termux','--timeout','50','--',process.execPath,'-e','setInterval(()=>{},1000)']);
  assert.equal(r.code,124);assert.equal(JSON.parse(r.stdout).result.completion,'unconfirmed');
 });

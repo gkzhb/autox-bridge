@@ -19,6 +19,8 @@
     "bin",
     "dist",
     "src",
+    "runner",
+    "docs",
     "README.md",
     "LICENSE",
     "NOTICE"

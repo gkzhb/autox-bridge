@@ -2,20 +2,39 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
+import {executeAutoX} from './autox.js';
+import {executeHttp} from './autox-http.js';
+export {installHttp} from './autox-http.js';
+export {installAutoX} from './autox.js';
 export { status } from './status.js';
 export type { StatusOptions } from './status.js';
 
 export class PhoneError extends Error {
   constructor(public code: string, message: string, public details?: unknown) { super(message); this.name = 'PhoneError'; }
 }
-export interface ExecOptions { as: 'termux' | 'shell'; argv: string[]; timeoutMs?: number; maxOutputBytes?: number; rishPath?: string }
+export interface ExecOptions { as: 'termux' | 'shell'; argv: string[]; timeoutMs?: number; maxOutputBytes?: number; rishPath?: string; backend?: 'auto' | 'rish' | 'autox' | 'autox-http'; script?: string }
 export interface ExecResult {
-  backend: 'termux' | 'shell'; identity: { uid: number | null; verified: boolean };
+  backend: 'termux' | 'shell' | 'rish' | 'autox' | 'autox-http'; fallback?: {from: 'autox-http'; reason: string}; requestId?: string; attempt?: string; execution?: import('./autox.js').AutoXExecution; identity: { uid: number | null; verified: boolean };
   exitCode: number | null; signal: string | null; stdout: string; stderr: string;
   timedOut: boolean; completion: 'exited' | 'unconfirmed';
 }
 const quote = (s: string) => "'" + s.replaceAll("'", "'\\''") + "'";
 export async function execute(options: ExecOptions): Promise<ExecResult> {
+  if(options.backend!==undefined&&options.as!=='shell')throw new PhoneError('INVALID_ARGUMENT','Shizuku backends require shell identity; use --as termux without --backend');
+  if(options.backend==='auto'){
+    try{return await executeHttp(options);}catch(e){
+      const details=e instanceof PhoneError?e.details as {phase?:string;executionSubmitted?:unknown;fallbackSafe?:boolean}|undefined:undefined;
+      if(!details?.fallbackSafe||details.executionSubmitted!==false||!['pairing','preflight'].includes(details.phase??'')||!(e instanceof PhoneError)||!['HTTP_NOT_PAIRED','HTTP_EXPIRED','HTTP_UNAVAILABLE'].includes(e.code))throw e;
+      const fallback={from:'autox-http' as const,reason:(e as PhoneError).code};
+      const argv=options.script===undefined?options.argv:['/system/bin/sh','-c',options.script];
+      try{return {...await execute({...options,backend:'rish',script:undefined,argv,timeoutMs:options.timeoutMs??15000,maxOutputBytes:options.maxOutputBytes??16384}),fallback};}
+      catch(error){if(error instanceof PhoneError)throw new PhoneError(error.code,error.message,{backend:'rish',fallback});throw error;}
+    }
+  }
+  if(options.backend==='rish')return {...await execute({...options,backend:undefined}),backend:'rish'};
+  if(options.backend==='autox')return executeAutoX(options);
+  if(options.backend==='autox-http')return executeHttp(options);
+  if(options.backend!==undefined||options.script!==undefined)throw new PhoneError('INVALID_ARGUMENT','Unsupported backend/script selection');
   if (!['termux','shell'].includes(options.as) || !options.argv.length || options.argv.some(v => typeof v !== 'string' || v.includes('\0')) || !options.argv[0]) throw new PhoneError('INVALID_ARGUMENT', 'Expected backend and nonempty argv without NUL');
   const timeoutMs = options.timeoutMs ?? 30000;
   const limit = options.maxOutputBytes ?? 1024 * 1024;
